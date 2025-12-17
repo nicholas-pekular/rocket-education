@@ -1,7 +1,20 @@
 # Dockerfile for video-capture-service
 # Designed for Raspberry Pi Zero 2 W with IMX camera
+# Using Bookworm base to match Raspberry Pi OS repository
 
-FROM python:3.11-slim
+FROM python:3.11-slim-bookworm
+
+# Install prerequisites for adding repositories
+RUN apt-get update && apt-get install -y \
+    curl \
+    gnupg \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Add Raspberry Pi OS repository for picamera2 packages
+# Using bookworm as it's the stable release that matches most Raspberry Pi OS versions
+RUN echo "deb http://archive.raspberrypi.org/debian/ bookworm main" > /etc/apt/sources.list.d/raspberrypi.list && \
+    curl -fsSL https://archive.raspberrypi.org/debian/raspberrypi.gpg.key | gpg --dearmor -o /etc/apt/trusted.gpg.d/raspberrypi.gpg
 
 # Install system dependencies for picamera2 and ffmpeg
 RUN apt-get update && apt-get install -y \
