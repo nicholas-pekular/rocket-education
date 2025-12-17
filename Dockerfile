@@ -20,7 +20,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY capture_video.py .
+COPY recording_manager.py .
+COPY api_server.py .
 
 # Create video output directory
 RUN mkdir -p /videos
@@ -33,5 +34,5 @@ ENV PORT=8001
 EXPOSE 8001
 
 # Run the FastAPI application
-CMD ["python", "capture_video.py"]
+CMD ["python", "api_server.py"]
 
