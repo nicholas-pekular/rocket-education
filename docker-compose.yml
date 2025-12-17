@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  video-capture-service:
+    build: .
+    container_name: video-capture-service
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./videos:/videos
+    devices:
+      - /dev/video0:/dev/video0
+      - /dev/vchiq:/dev/vchiq
+    environment:
+      - VIDEO_OUTPUT_DIR=/videos
+      - PORT=8001
+    privileged: true  # Required for camera access on Raspberry Pi
+
