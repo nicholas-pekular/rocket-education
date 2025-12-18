@@ -19,9 +19,9 @@ RUN apt-get update && apt-get install -y \
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
     update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1
 
-# Install pip for Python 3.11
+# Install pip for Python 3.11 (using --break-system-packages is safe in containers)
 RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.11 && \
-    python3.11 -m pip install --upgrade pip && \
+    python3.11 -m pip install --upgrade pip --break-system-packages && \
     python3.11 -m pip --version
 
 # Add Raspberry Pi OS repository for picamera2 packages
@@ -59,8 +59,8 @@ WORKDIR /app
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
 RUN python3.11 -m pip --version && \
-    python3.11 -m pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    python3.11 -m pip install --no-cache-dir -r requirements.txt
+    python3.11 -m pip install --no-cache-dir --upgrade pip setuptools wheel --break-system-packages && \
+    python3.11 -m pip install --no-cache-dir -r requirements.txt --break-system-packages
 
 # Copy application code
 COPY recording_manager.py .
