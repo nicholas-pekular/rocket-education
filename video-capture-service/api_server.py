@@ -2,10 +2,22 @@
 # Provides REST API endpoints to control video recording
 # Containerized as video-capture-service
 
+import sys
+import os
+
+# Debug: Print Python info before importing anything
+print(f"Python executable: {sys.executable}")
+print(f"Python version: {sys.version}")
+print(f"Python path: {sys.path}")
+
+# Ensure system packages are in path BEFORE importing recording_manager
+if '/usr/lib/python3/dist-packages' not in sys.path:
+    sys.path.insert(0, '/usr/lib/python3/dist-packages')
+print(f"Updated Python path: {sys.path}")
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Optional
-import os
 import ulid
 import time
 import traceback

@@ -1,17 +1,22 @@
 # Dockerfile for video-capture-service
 # Designed for Raspberry Pi Zero 2 W with IMX camera
-# Using Bookworm base to match Raspberry Pi OS repository
+# Using Debian Bookworm base to match Raspberry Pi OS repository
 
-FROM python:3.11-slim-bookworm
+FROM debian:bookworm-slim
 
-# Install system Python 3 and prerequisites for adding repositories
+# Install Python 3.11 and prerequisites
 RUN apt-get update && apt-get install -y \
-    python3 \
+    python3.11 \
+    python3.11-dev \
     python3-pip \
     curl \
     gnupg \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
+
+# Create symlinks so python3 points to python3.11
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
+    update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1
 
 # Add Raspberry Pi OS repository for picamera2 packages
 # Using bookworm as it's the stable release that matches most Raspberry Pi OS versions
@@ -66,9 +71,14 @@ EXPOSE 8001
 # Set PYTHONPATH to include system packages
 ENV PYTHONPATH=/usr/lib/python3/dist-packages:${PYTHONPATH}
 
-# Verify we can import picamera2 before starting
-RUN python3 -c "import picamera2; print('✓ picamera2 is available')" || \
-    (echo "ERROR: picamera2 not available" && python3 -c "import sys; print('Python:', sys.executable); print('Path:', sys.path)" && exit 1)
+# Verify we can import picamera2 before starting - use the same python3 that will run the app
+RUN which python3 && \
+    python3 -c "import sys; print('Build Python:', sys.executable); print('Build Path:', sys.path)" && \
+    python3 -c "import picamera2; print('✓ picamera2 is available at build time')" || \
+    (echo "ERROR: picamera2 not available at build time" && \
+     find /usr -name "picamera2" -type d 2>/dev/null && \
+     ls -la /usr/lib/python3*/dist-packages/ 2>/dev/null | head -20 && \
+     exit 1)
 
 # Run the FastAPI application using system python3
 CMD ["python3", "api_server.py"]
