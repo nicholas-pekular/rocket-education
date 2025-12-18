@@ -18,10 +18,17 @@ print(f"Updated Python path: {sys.path}")
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Optional
-import ulid
 import time
 import traceback
 from datetime import datetime
+
+# Import ULID - python-ulid package
+# The python-ulid package exports 'new' function directly
+from ulid import new as ulid_new
+
+def generate_ulid():
+    """Generate a new ULID string"""
+    return str(ulid_new())
 
 from recording_manager import RecordingState
 
@@ -56,7 +63,7 @@ def start_recording(request: StartRecordingRequest):
                 raise HTTPException(status_code=409, detail="Recording already in progress")
         
         # Generate ULID for recording
-        recording_id = str(ulid.new())
+        recording_id = generate_ulid()
         
         # Generate filename
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
