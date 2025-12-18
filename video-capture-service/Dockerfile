@@ -8,7 +8,8 @@ FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y \
     python3.11 \
     python3.11-dev \
-    python3-pip \
+    python3.11-venv \
+    build-essential \
     curl \
     gnupg \
     ca-certificates \
@@ -17,6 +18,11 @@ RUN apt-get update && apt-get install -y \
 # Create symlinks so python3 points to python3.11
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
     update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1
+
+# Install pip for Python 3.11
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.11 && \
+    python3.11 -m pip install --upgrade pip && \
+    python3.11 -m pip --version
 
 # Add Raspberry Pi OS repository for picamera2 packages
 # Using bookworm as it's the stable release that matches most Raspberry Pi OS versions
@@ -50,9 +56,11 @@ RUN echo "=== Checking Python versions ===" && \
 # Set working directory
 WORKDIR /app
 
-# Copy requirements and install Python dependencies using system pip
+# Copy requirements and install Python dependencies
 COPY requirements.txt .
-RUN python3 -m pip install --no-cache-dir -r requirements.txt
+RUN python3.11 -m pip --version && \
+    python3.11 -m pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    python3.11 -m pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY recording_manager.py .
