@@ -4,11 +4,12 @@
 
 FROM debian:bookworm-slim
 
-# Install Python 3.11 and prerequisites
+# Install Python 3.11 and prerequisites including pip
 RUN apt-get update && apt-get install -y \
     python3.11 \
     python3.11-dev \
     python3.11-venv \
+    python3-pip \
     build-essential \
     curl \
     gnupg \
@@ -19,9 +20,8 @@ RUN apt-get update && apt-get install -y \
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
     update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1
 
-# Install pip for Python 3.11 (using --break-system-packages is safe in containers)
-RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.11 && \
-    python3.11 -m pip install --upgrade pip --break-system-packages && \
+# Upgrade pip (using --break-system-packages is safe in containers)
+RUN python3.11 -m pip install --upgrade pip --break-system-packages && \
     python3.11 -m pip --version
 
 # Add Raspberry Pi OS repository for picamera2 packages
