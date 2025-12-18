@@ -4,8 +4,10 @@
 
 FROM python:3.11-slim-bookworm
 
-# Install prerequisites for adding repositories
+# Install system Python 3 and prerequisites for adding repositories
 RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
     curl \
     gnupg \
     ca-certificates \
@@ -25,16 +27,27 @@ RUN apt-get update && apt-get install -y \
     python3-libcamera \
     && rm -rf /var/lib/apt/lists/*
 
-# Verify picamera2 can be imported
-RUN python3 -c "import sys; sys.path.insert(0, '/usr/lib/python3/dist-packages'); import picamera2; print('picamera2 verified')" || \
-    (echo "Warning: picamera2 import test failed" && ls -la /usr/lib/python3*/dist-packages/ | grep picamera || true)
+# Find where picamera2 is installed and verify
+RUN echo "=== Checking Python versions ===" && \
+    python3 --version && \
+    python --version && \
+    echo "=== Checking picamera2 installation ===" && \
+    find /usr -name "picamera2" -type d 2>/dev/null && \
+    find /usr -name "*picamera2*" 2>/dev/null | head -10 && \
+    echo "=== Checking dist-packages ===" && \
+    ls -la /usr/lib/python3*/dist-packages/ | grep -i picamera || echo "No picamera2 in dist-packages" && \
+    echo "=== Testing import with system python3 ===" && \
+    python3 -c "import sys; print('Python path:', sys.path); import picamera2; print('✓ picamera2 found')" || \
+    (echo "=== Trying with explicit path ===" && \
+     python3 -c "import sys; sys.path.insert(0, '/usr/lib/python3/dist-packages'); import picamera2; print('✓ picamera2 found with path')" || \
+     echo "⚠ picamera2 import failed")
 
 # Set working directory
 WORKDIR /app
 
-# Copy requirements and install Python dependencies
+# Copy requirements and install Python dependencies using system pip
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN python3 -m pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY recording_manager.py .
@@ -53,6 +66,10 @@ EXPOSE 8001
 # Set PYTHONPATH to include system packages
 ENV PYTHONPATH=/usr/lib/python3/dist-packages:${PYTHONPATH}
 
-# Run the FastAPI application
+# Verify we can import picamera2 before starting
+RUN python3 -c "import picamera2; print('✓ picamera2 is available')" || \
+    (echo "ERROR: picamera2 not available" && python3 -c "import sys; print('Python:', sys.executable); print('Path:', sys.path)" && exit 1)
+
+# Run the FastAPI application using system python3
 CMD ["python3", "api_server.py"]
 
