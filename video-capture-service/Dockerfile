@@ -25,6 +25,10 @@ RUN apt-get update && apt-get install -y \
     python3-libcamera \
     && rm -rf /var/lib/apt/lists/*
 
+# Verify picamera2 can be imported
+RUN python3 -c "import sys; sys.path.insert(0, '/usr/lib/python3/dist-packages'); import picamera2; print('picamera2 verified')" || \
+    (echo "Warning: picamera2 import test failed" && ls -la /usr/lib/python3*/dist-packages/ | grep picamera || true)
+
 # Set working directory
 WORKDIR /app
 
@@ -46,6 +50,9 @@ ENV PORT=8001
 # Expose API port
 EXPOSE 8001
 
+# Set PYTHONPATH to include system packages
+ENV PYTHONPATH=/usr/lib/python3/dist-packages:${PYTHONPATH}
+
 # Run the FastAPI application
-CMD ["python", "api_server.py"]
+CMD ["python3", "api_server.py"]
 

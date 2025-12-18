@@ -2,12 +2,18 @@
 # Handles camera control and recording state management
 # Designed for Raspberry Pi Zero 2 W with IMX camera
 
+import sys
+import os
+
+# Ensure system packages are in path (for picamera2 installed via apt)
+if '/usr/lib/python3/dist-packages' not in sys.path:
+    sys.path.insert(0, '/usr/lib/python3/dist-packages')
+
 from picamera2 import Picamera2, encoders
 from picamera2.outputs import FfmpegOutput
 import time
 import threading
 from typing import Optional
-import os
 
 
 class RecordingState:
