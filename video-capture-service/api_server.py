@@ -8,6 +8,7 @@ from typing import Optional
 import os
 import ulid
 import time
+import traceback
 from datetime import datetime
 
 from recording_manager import RecordingState
@@ -56,22 +57,33 @@ def start_recording(request: StartRecordingRequest):
         filepath = os.path.join(output_dir, filename)
         
         # Start recording
-        recording_state.start_recording(
-            recording_id=recording_id,
-            filename=filepath,
-            duration=request.duration,
-            max_file_size=request.max_file_size
-        )
+        try:
+            recording_state.start_recording(
+                recording_id=recording_id,
+                filename=filepath,
+                duration=request.duration,
+                max_file_size=request.max_file_size
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=409, detail=str(e))
+        except Exception as e:
+            error_msg = f"Failed to start recording: {str(e)}"
+            print(f"ERROR: {error_msg}")
+            print(traceback.format_exc())
+            raise HTTPException(status_code=500, detail=error_msg)
         
         return StartRecordingResponse(
             recording_id=recording_id,
             filename=filename,
             message=f"Recording started with ID: {recording_id}"
         )
-    except ValueError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to start recording: {str(e)}")
+        error_msg = f"Unexpected error: {str(e)}"
+        print(f"ERROR: {error_msg}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=error_msg)
 
 @app.post("/record/stop", response_model=StopRecordingResponse)
 def stop_recording():
@@ -100,6 +112,11 @@ def stop_recording():
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to stop recording: {str(e)}")
+
+@app.get("/health")
+def health_check():
+    """Health check endpoint"""
+    return {"status": "healthy", "service": "video-capture-service"}
 
 @app.get("/record/status")
 def get_recording_status():

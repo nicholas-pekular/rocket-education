@@ -32,30 +32,49 @@ class RecordingState:
             if self.is_recording:
                 raise ValueError("Recording already in progress")
             
-            self.recording_id = recording_id
-            self.filename = filename
-            self.duration = duration
-            self.max_file_size = max_file_size
-            self.start_time = time.time()
-            
-            # Initialize camera
-            self.picam2 = Picamera2()
-            video_config = self.picam2.create_video_configuration(
-                main={"size": (1280, 720)},
-                controls={"FrameDurationLimits": (33333, 33333)}
-            )
-            self.picam2.configure(video_config)
-            
-            self.encoder = encoders.H264Encoder(bitrate=5_000_000)
-            self.output = FfmpegOutput(filename)
-            
-            self.picam2.start()
-            self.picam2.start_recording(self.encoder, self.output)
-            self.is_recording = True
-            
-            # Start monitoring thread
-            self.monitor_thread = threading.Thread(target=self._monitor_recording, daemon=True)
-            self.monitor_thread.start()
+            try:
+                self.recording_id = recording_id
+                self.filename = filename
+                self.duration = duration
+                self.max_file_size = max_file_size
+                self.start_time = time.time()
+                
+                # Initialize camera
+                print(f"Initializing camera for recording {recording_id}...")
+                self.picam2 = Picamera2()
+                video_config = self.picam2.create_video_configuration(
+                    main={"size": (1280, 720)},
+                    controls={"FrameDurationLimits": (33333, 33333)}
+                )
+                self.picam2.configure(video_config)
+                
+                print(f"Creating encoder and output for {filename}...")
+                self.encoder = encoders.H264Encoder(bitrate=5_000_000)
+                self.output = FfmpegOutput(filename)
+                
+                print("Starting camera...")
+                self.picam2.start()
+                print("Starting recording...")
+                self.picam2.start_recording(self.encoder, self.output)
+                self.is_recording = True
+                print(f"Recording started successfully: {filename}")
+                
+                # Start monitoring thread
+                self.monitor_thread = threading.Thread(target=self._monitor_recording, daemon=True)
+                self.monitor_thread.start()
+            except Exception as e:
+                # Clean up on error
+                print(f"Error starting recording: {e}")
+                self.is_recording = False
+                if self.picam2:
+                    try:
+                        self.picam2.stop()
+                    except:
+                        pass
+                    self.picam2 = None
+                self.encoder = None
+                self.output = None
+                raise
     
     def stop_recording(self):
         """Stop the current video recording"""
