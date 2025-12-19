@@ -26,8 +26,8 @@ from datetime import datetime
 # python-ulid 2.2.0: import the package and use ULID class
 import ulid
 
-# Debug: Check what's in the ulid module
-print(f"ULID module dir: {[x for x in dir(ulid) if not x.startswith('_')]}")
+# Debug: Check what's in the ulid module (only print once)
+# print(f"ULID module dir: {[x for x in dir(ulid) if not x.startswith('_')]}")
 
 # Try to create ULID - python-ulid 2.x uses ULID() constructor
 try:

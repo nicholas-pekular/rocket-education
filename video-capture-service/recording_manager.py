@@ -47,7 +47,34 @@ class RecordingState:
                 
                 # Initialize camera
                 print(f"Initializing camera for recording {recording_id}...")
-                self.picam2 = Picamera2()
+                
+                # Check if camera device files exist
+                import os
+                video_devices = ['/dev/video0', '/dev/video10', '/dev/video11', '/dev/video12']
+                found_devices = [d for d in video_devices if os.path.exists(d)]
+                print(f"Camera device files found: {found_devices}")
+                
+                if not found_devices:
+                    raise RuntimeError("No camera device files found. Ensure /dev/video0 and /dev/vchiq are mounted in the container.")
+                
+                # Check camera availability via libcamera
+                try:
+                    camera_info = Picamera2.global_camera_info()
+                    print(f"Available cameras (libcamera): {len(camera_info)}")
+                    if len(camera_info) == 0:
+                        raise RuntimeError("No cameras detected by libcamera. Check device mounts, permissions, and that the camera is enabled.")
+                    print(f"Camera info: {camera_info}")
+                except Exception as e:
+                    print(f"Error checking camera info: {e}")
+                    raise RuntimeError(f"Camera not available: {str(e)}")
+                
+                # Initialize camera (try camera 0 explicitly)
+                try:
+                    self.picam2 = Picamera2(camera_num=0)
+                except Exception as e:
+                    print(f"Error initializing Picamera2: {e}")
+                    raise RuntimeError(f"Failed to initialize camera: {str(e)}")
+                
                 video_config = self.picam2.create_video_configuration(
                     main={"size": (1280, 720)},
                     controls={"FrameDurationLimits": (33333, 33333)}
