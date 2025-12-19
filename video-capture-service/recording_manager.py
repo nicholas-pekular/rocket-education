@@ -62,8 +62,49 @@ class RecordingState:
                     camera_info = Picamera2.global_camera_info()
                     print(f"Available cameras (libcamera): {len(camera_info)}")
                     if len(camera_info) == 0:
-                        raise RuntimeError("No cameras detected by libcamera. Check device mounts, permissions, and that the camera is enabled.")
+                        # Try to get more info about why cameras aren't detected
+                        print("Attempting to diagnose camera detection issue...")
+                        # Check if we can access vchiq
+                        if not os.path.exists('/dev/vchiq'):
+                            raise RuntimeError("/dev/vchiq not found. This is required for camera access on Raspberry Pi.")
+                        # Check permissions
+                        import stat
+                        vchiq_stat = os.stat('/dev/vchiq')
+                        print(f"/dev/vchiq permissions: {oct(vchiq_stat.st_mode)}")
+                        
+                        # Try to initialize camera anyway - sometimes libcamera can access
+                        # the camera even if global_camera_info() returns empty
+                        print("Attempting to initialize camera despite empty camera list...")
+                        try:
+                            self.picam2 = Picamera2(camera_num=0)
+                            print("✓ Camera initialized successfully despite empty camera list")
+                            # Skip the rest of the camera info check
+                            video_config = self.picam2.create_video_configuration(
+                                main={"size": (1280, 720)},
+                                controls={"FrameDurationLimits": (33333, 33333)}
+                            )
+                            self.picam2.configure(video_config)
+                            # Continue with encoder setup
+                            print(f"Creating encoder and output for {filename}...")
+                            self.encoder = encoders.H264Encoder(bitrate=5_000_000)
+                            self.output = FfmpegOutput(filename)
+                            print("Starting camera...")
+                            self.picam2.start()
+                            print("Starting recording...")
+                            self.picam2.start_recording(self.encoder, self.output)
+                            self.is_recording = True
+                            print(f"Recording started successfully: {filename}")
+                            
+                            # Start monitoring thread
+                            self.monitor_thread = threading.Thread(target=self._monitor_recording, daemon=True)
+                            self.monitor_thread.start()
+                            return  # Success - exit early
+                        except Exception as init_error:
+                            print(f"Failed to initialize camera directly: {init_error}")
+                            raise RuntimeError("No cameras detected by libcamera and direct initialization failed. Check device mounts, permissions, and that the camera is enabled.")
                     print(f"Camera info: {camera_info}")
+                except RuntimeError:
+                    raise
                 except Exception as e:
                     print(f"Error checking camera info: {e}")
                     raise RuntimeError(f"Camera not available: {str(e)}")
