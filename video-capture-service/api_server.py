@@ -23,12 +23,26 @@ import traceback
 from datetime import datetime
 
 # Import ULID - python-ulid package
-# The python-ulid package exports 'new' function directly
-from ulid import new as ulid_new
+# python-ulid 2.2.0: import the package and use ULID class
+import ulid
 
-def generate_ulid():
-    """Generate a new ULID string"""
-    return str(ulid_new())
+# Debug: Check what's in the ulid module
+print(f"ULID module dir: {[x for x in dir(ulid) if not x.startswith('_')]}")
+
+# Try to create ULID - python-ulid 2.x uses ULID() constructor
+try:
+    # Test if we can create a ULID
+    test_ulid = ulid.ULID()
+    def generate_ulid():
+        """Generate a new ULID string"""
+        return str(ulid.ULID())
+except (AttributeError, TypeError) as e:
+    print(f"Error creating ULID: {e}")
+    # Fallback to uuid
+    import uuid
+    def generate_ulid():
+        """Generate a new UUID string (fallback)"""
+        return str(uuid.uuid4())
 
 from recording_manager import RecordingState
 
